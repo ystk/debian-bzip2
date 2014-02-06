@@ -1,3 +1,60 @@
+bzip2 (1.0.6-4) unstable; urgency=low
+
+  * Updating 30-bzip2-harden.patch, hardening LDFLAGS was missing for
+    libbz2.so. Thanks to Simon Ruderich. Closes: #655164
+
+ -- Santiago Ruano Rincón <santiago@debian.org>  Fri, 27 Jul 2012 16:14:34 +0200
+
+bzip2 (1.0.6-3) unstable; urgency=low
+
+  * Bumped bzip2 priority from optional to standard. Closes: #642657
+
+ -- Santiago Ruano Rincón <santiago@debian.org>  Fri, 08 Jun 2012 01:50:04 +0200
+
+bzip2 (1.0.6-2) unstable; urgency=low
+
+  * Added 10-bzip2.1.patch to remove wrong black spaces in man page.
+    Thanks to Bjarni Ingi Gislason. Closes: #675380
+  * 30-bzip2-harden.patch to enable hardened build flags. Thanks to
+    Moritz Muehlenhoff. Closes: #655164 
+
+ -- Santiago Ruano Rincón <santiago@debian.org>  Sun, 03 Jun 2012 12:02:05 +0200
+
+bzip2 (1.0.6-1) unstable; urgency=low
+
+  * New upstream version 1.0.6
+  * Debian source format is 3.0 (quilt)
+  * Fix "insecure temporary file creation (bzexe)"
+    Patch by vladz
+    Closes: 632862
+  * Compress changelogs with the -n option
+    Closes: 646972
+  * Update debian/copyright
+    Closes: 619797
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Sun, 04 Dec 2011 19:51:51 +1100
+
+bzip2 (1.0.5-7) unstable; urgency=low
+
+  [ Riku Voipio ]
+  * multiarchize, closes: #528143
+  * lib32bz2-1.0 only pre-depends on libc6-i386 on amd64; that
+    pre-dependency is nonsensical on ppc64.
+    Patch by Colin Watson
+    Closes: 614235
+
+  [ Anibal Monsalve Salazar ]
+  * Standards-Version is 3.9.2
+  * Fix debian-rules-missing-recommended-target
+  * Fix maintainer-script-empty
+  * Fix copyright-refers-to-versionless-license-file
+  * Fix info-document-missing-dir-section
+  * Fix missing-dependency-on-install-info
+  * Fix prerm-has-useless-call-to-install-docs
+  * Fix install-info-used-in-maintainer-script
+
+ -- Anibal Monsalve Salazar <anibal@debian.org>  Sun, 04 Sep 2011 14:36:41 +1000
+
 bzip2 (1.0.5-6) unstable; urgency=high
 
   * Fix integer overflow 

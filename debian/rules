@@ -13,20 +13,22 @@ DEB_BUILD_GNU_TYPE	:= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 DEB_HOST_GNU_TYPE	:= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_HOST_ARCH		:= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 DEB_HOST_ARCH_OS	:= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+DEB_HOST_MULTIARCH      ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
 ifneq ($(DEB_HOST_GNU_TYPE),$(DEB_BUILD_GNU_TYPE))
         CROSS=CC=$(DEB_HOST_GNU_TYPE)-gcc
         CC=$(DEB_HOST_GNU_TYPE)-gcc
+        DEBSTRIP=$(DEB_HOST_GNU_TYPE)-strip
 else
         CROSS=CC=gcc
         CC=gcc
+        DEBSTRIP=strip
 endif
 
-DEBCFLAGS:=
-DEBSTRIP:=strip
+DEBCFLAGS:=`dpkg-buildflags --get CFLAGS`
+DEBCFLAGS +=`dpkg-buildflags --get CPPFLAGS`
 WGET=wget
-ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
-DEBCFLAGS += -g
-endif
+
 ifneq (,$(findstring nostrip,$(DEB_BUILD_OPTIONS)))
 DEBSTRIP:=:
 endif
@@ -50,6 +52,8 @@ ifneq (,$(findstring /$(DEB_HOST_ARCH)/,/amd64/ppc64/))
 	lib32 := usr/lib32
 endif
 
+build-arch: build
+build-indep: build
 build: build-stamp $(build32-stamp) $(build64-stamp)
 build-stamp:
 	$(testdir)
@@ -116,7 +120,7 @@ binary-indep: build
 
 	cp debian/changelog \
 	  debian/tmp-doc/usr/share/doc/bzip2-doc/changelog.Debian
-	gzip -v9 debian/tmp-doc/usr/share/doc/bzip2-doc/changelog*
+	gzip -v9 -n debian/tmp-doc/usr/share/doc/bzip2-doc/changelog*
 	cp debian/copyright debian/tmp-doc/usr/share/doc/bzip2-doc/
 
 	# Doc-base support
@@ -127,13 +131,6 @@ binary-indep: build
 	install -d debian/tmp-doc/DEBIAN
 
 	dpkg-gencontrol -isp -Pdebian/tmp-doc -pbzip2-doc
-
-	for i in doc; do \
-	  cp debian/postinst-$$i debian/tmp-$$i/DEBIAN/postinst; \
-	  cp debian/prerm-$$i debian/tmp-$$i/DEBIAN/prerm; \
-	  chmod +x debian/tmp-$$i/DEBIAN/postinst; \
-	  chmod +x debian/tmp-$$i/DEBIAN/prerm; \
-	done
 
 	# Add md5sums
 	$(call gen_md5sums,doc)
@@ -157,20 +154,20 @@ binary-arch: build
 	### Split
 
 	# Development package
-	install -d debian/tmp-dev/usr/lib
+	install -d debian/tmp-dev/usr/lib/$(DEB_HOST_MULTIARCH)
 	rm debian/tmp/lib/libbz2.so
-	ln -s /lib/libbz2.so.1.0 debian/tmp-dev/usr/lib/libbz2.so
-	mv debian/tmp/lib/libbz2.a debian/tmp-dev/usr/lib/
+	ln -s /lib/$(DEB_HOST_MULTIARCH)/libbz2.so.1.0 debian/tmp-dev/usr/lib/$(DEB_HOST_MULTIARCH)/libbz2.so
+	mv debian/tmp/lib/libbz2.a debian/tmp-dev/usr/lib/$(DEB_HOST_MULTIARCH)/
 	mv debian/tmp/include debian/tmp-dev/usr/include
 	
 
 	# Library package
-	install -d debian/tmp-lib/lib
+	install -d debian/tmp-lib/lib/$(DEB_HOST_MULTIARCH)
 	for i in $$(ls debian/tmp/lib/libbz2.so*); do \
-	  (set -x; echo $$i; mv $$i debian/tmp-lib/lib/); \
+	  (set -x; echo $$i; mv $$i debian/tmp-lib/lib/$(DEB_HOST_MULTIARCH)/); \
 	done
-	ln -s libbz2.so.1.0.4 debian/tmp-lib/lib/libbz2.so.1
-	chmod -x debian/tmp-lib/lib/*
+	ln -s libbz2.so.1.0.4 debian/tmp-lib/lib/$(DEB_HOST_MULTIARCH)/libbz2.so.1
+	chmod -x debian/tmp-lib/lib/$(DEB_HOST_MULTIARCH)/*
 
 	# Binary package
 	install -d debian/tmp-run
@@ -200,7 +197,7 @@ binary-arch: build
 	cp CHANGES debian/tmp-run/usr/share/doc/bzip2/changelog
 	cp debian/changelog \
 	  debian/tmp-run/usr/share/doc/bzip2/changelog.Debian
-	gzip -v9 debian/tmp-run/usr/share/doc/bzip2/changelog*
+	gzip -v9 -n debian/tmp-run/usr/share/doc/bzip2/changelog*
 	cp debian/copyright debian/tmp-run/usr/share/doc/bzip2/
 
 	# Library package
@@ -209,7 +206,7 @@ binary-arch: build
 	cp CHANGES debian/tmp-lib/usr/share/doc/libbz2-1.0/changelog
 	cp debian/changelog \
 	  debian/tmp-lib/usr/share/doc/libbz2-1.0/changelog.Debian
-	gzip -v9 debian/tmp-lib/usr/share/doc/libbz2-1.0/changelog*
+	gzip -v9 -n debian/tmp-lib/usr/share/doc/libbz2-1.0/changelog*
 
 	# Other packages point to libbz2-1.0
 	install -d debian/tmp-dev/usr/share/doc
@@ -226,14 +223,14 @@ binary-arch: build
 	  fi; \
 	done
 	$(DEBSTRIP) --strip-unneeded -R .note -R .comment \
-	  debian/tmp-lib/lib/*.so*
-	$(DEBSTRIP) --strip-debug debian/tmp-dev/usr/lib/*.a
+	  debian/tmp-lib/lib/$(DEB_HOST_MULTIARCH)/*.so*
+	$(DEBSTRIP) --strip-debug debian/tmp-dev/usr/lib/$(DEB_HOST_MULTIARCH)/*.a
 
 	# Control files
 	install -d debian/tmp-{lib,dev,run}/DEBIAN
 	cp debian/shlibs debian/tmp-lib/DEBIAN/shlibs
 
-	dpkg-shlibdeps debian/tmp-lib/lib/*.so*
+	dpkg-shlibdeps debian/tmp-lib/lib/$(DEB_HOST_MULTIARCH)/*.so*
 	dpkg-gencontrol -isp -Pdebian/tmp-lib -plibbz2-1.0
 	rm debian/substvars
 	dpkg-gencontrol -isp -Pdebian/tmp-dev -plibbz2-dev
@@ -242,9 +239,7 @@ binary-arch: build
 
 	for i in run dev lib; do \
 	  cp debian/postinst-$$i debian/tmp-$$i/DEBIAN/postinst; \
-	  cp debian/prerm-$$i debian/tmp-$$i/DEBIAN/prerm; \
 	  chmod +x debian/tmp-$$i/DEBIAN/postinst; \
-	  chmod +x debian/tmp-$$i/DEBIAN/prerm; \
 	done
 	cp debian/preinst-run debian/tmp-run/DEBIAN/preinst
 	cp debian/postrm-lib debian/tmp-lib/DEBIAN/postrm
@@ -281,7 +276,7 @@ ifneq (,$(build64-stamp))
 	cp debian/copyright debian/tmp-lib64/usr/share/doc/lib64bz2-1.0/
 	cp debian/changelog \
 	  debian/tmp-lib64/usr/share/doc/lib64bz2-1.0/changelog.Debian
-	gzip -v9 debian/tmp-lib64/usr/share/doc/lib64bz2-1.0/changelog*
+	gzip -v9 -n debian/tmp-lib64/usr/share/doc/lib64bz2-1.0/changelog*
 
 	install -d debian/tmp-dev64/usr/share/doc
 	ln -s lib64bz2-1.0 debian/tmp-dev64/usr/share/doc/lib64bz2-dev
@@ -325,9 +320,7 @@ endif
 
 	for i in dev lib; do \
 	  cp debian/postinst-$$i debian/tmp-$${i}64/DEBIAN/postinst; \
-	  cp debian/prerm-$$i debian/tmp-$${i}64/DEBIAN/prerm; \
 	  chmod +x debian/tmp-$${i}64/DEBIAN/postinst; \
-	  chmod +x debian/tmp-$${i}64/DEBIAN/prerm; \
 	done
 
 	$(call gen_md5sums,lib64)
@@ -357,7 +350,7 @@ ifneq (,$(build32-stamp))
 	cp debian/copyright debian/tmp-lib32/usr/share/doc/lib32bz2-1.0/
 	cp debian/changelog \
 	  debian/tmp-lib32/usr/share/doc/lib32bz2-1.0/changelog.Debian
-	gzip -v9 debian/tmp-lib32/usr/share/doc/lib32bz2-1.0/changelog*
+	gzip -v9 -n debian/tmp-lib32/usr/share/doc/lib32bz2-1.0/changelog*
 
 	install -d debian/tmp-dev32/usr/share/doc
 	ln -s lib32bz2-1.0 debian/tmp-dev32/usr/share/doc/lib32bz2-dev
@@ -389,9 +382,7 @@ endif
 
 	for i in dev lib; do \
 	  cp debian/postinst-$$i debian/tmp-$${i}32/DEBIAN/postinst; \
-	  cp debian/prerm-$$i debian/tmp-$${i}32/DEBIAN/prerm; \
 	  chmod +x debian/tmp-$${i}32/DEBIAN/postinst; \
-	  chmod +x debian/tmp-$${i}32/DEBIAN/prerm; \
 	done
 
 	$(call gen_md5sums,lib32)
