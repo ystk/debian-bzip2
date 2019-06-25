@@ -1,3 +1,13 @@
+bzip2 (1.0.6-7+deb8u1) jessie-security; urgency=high
+
+  * Non-maintainer upload by the LTS Team. 
+  * CVE-2019-12900
+    BZ2_decompress: Fix out-of-bounds write when there are many selectors
+  * CVE-2016-3189
+    bzip2recover: Fix potential use-after-free
+ 
+ -- Thorsten Alteholz <debian@alteholz.de>  Mon, 24 Jun 2019 19:03:02 +0200
+
 bzip2 (1.0.6-7) unstable; urgency=medium
 
   * d/control: Remove useless lib{32,64}bz2* transition fields
