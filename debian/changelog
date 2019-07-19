@@ -1,3 +1,11 @@
+bzip2 (1.0.6-7+deb8u2) jessie-security; urgency=high
+
+  * The original fix for CVE-2019-12900 introduces regressions when
+    extracting certain lbzip2 files which were created with a buggy
+    libzip2: https://bugs.debian.org/931278
+
+ -- Thorsten Alteholz <debian@alteholz.de>  Thu, 18 Jul 2019 19:03:02 +0200
+
 bzip2 (1.0.6-7+deb8u1) jessie-security; urgency=high
 
   * Non-maintainer upload by the LTS Team. 
